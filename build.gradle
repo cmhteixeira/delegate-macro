@@ -1,0 +1,74 @@
+plugins {
+    id 'java'
+    id 'scala'
+    id 'maven-publish'
+    id "com.diffplug.gradle.spotless" version "4.5.1"
+    id 'com.github.johnrengelman.shadow' version '5.2.0'
+    id "com.github.maiflai.scalatest" version "0.24"
+}
+
+configurations {
+    scalaCompilerPlugin
+}
+
+group 'com.cmhteixeira'
+version '0.1.0'
+
+sourceCompatibility = 1.8
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            groupId = 'com.cmhteixeira'
+            artifactId = 'proxy-macro'
+            version = '0.1.0'
+
+            from components.java
+        }
+    }
+}
+
+repositories {
+    mavenCentral()
+    jcenter()
+}
+
+spotless {
+    scala {
+        scalafmt()
+    }
+
+}
+
+dependencies {
+    compile("org.scala-lang:scala-library:2.12.8")
+
+    compile("org.scala-lang:scala-compiler:2.12.8")
+    scalaCompilerPlugin 'org.scalamacros:paradise_2.12.8:2.1.1'
+    compile("org.scala-lang:scala-reflect:2.12.8")
+
+    testCompile("org.scalatest:scalatest_2.12:3.0.2")
+    testRuntime 'org.pegdown:pegdown:1.4.2'
+}
+tasks.withType(ScalaCompile){
+    // Map plugin jars to -Xplugin parameter
+    List<String> parameters =
+            configurations.scalaCompilerPlugin.files.collect {
+                '-Xplugin:'+ it.absolutePath
+            }
+
+    // Add existing parameters
+    List<String> existingParameters = scalaCompileOptions.additionalParameters
+    if (existingParameters) {
+        parameters.addAll(existingParameters)
+    }
+
+    // Add whatever flags you typically add
+    parameters += [
+            '-language:implicitConversions',
+            '-language:higherKinds'
+    ]
+
+    // Finally set the additionalParameters
+    scalaCompileOptions.additionalParameters = parameters
+}
