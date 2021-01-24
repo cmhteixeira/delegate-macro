@@ -9,6 +9,7 @@ trait DBService {
 trait Foo {
   def bar(a1: Int, a2: String)(b1: String, b2: Int): String
   def baz(a: Int, b: String): String
+  def barBaz(a: String): String = s"Default-Implementation-$a"
 }
 
 class ProxyMacroSpec extends FlatSpec with Matchers {
@@ -62,8 +63,7 @@ class ProxyMacroSpec extends FlatSpec with Matchers {
     }
 
     @Proxy
-    class TestSubject(otherMember: String, dbService: DBService)
-        extends DBService {
+    class TestSubject(otherMember: String, dbService: DBService) extends DBService {
       def methodA(foo: Int, bar: String): Boolean = true
     }
 
@@ -118,4 +118,20 @@ class ProxyMacroSpec extends FlatSpec with Matchers {
       "FirstList(param1: 1, param2: Carlos); SecondList(param1: Manuel, param2: 2)"
   }
 
+  "Annottee" should "use the interface's non-abstract declaration and not the delegatee" in {
+    class FooImpl extends Foo {
+      def bar(a1: Int, a2: String)(b1: String, b2: Int): String =
+        s"FirstList(param1: $a1, param2: $a2); SecondList(param1: $b1, param2: $b2)"
+
+      def baz(a: Int, b: String): String = "not-relevant"
+
+      override def barBaz(a: String): String = s"FooImpl-$a"
+    }
+
+    @Proxy
+    class TestSubject(delegatee: Foo) extends Foo
+
+    new TestSubject(new FooImpl)
+      .barBaz("Hello") shouldBe "Default-Implementation-Hello"
+  }
 }

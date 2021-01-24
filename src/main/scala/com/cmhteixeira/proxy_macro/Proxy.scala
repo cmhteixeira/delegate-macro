@@ -61,6 +61,7 @@ object identityMacro {
     }
     val interfaceMethods =
       declarationsInterface
+        .filter(_.isAbstract)
         .filter(i =>
           !methodsOfAnnottee
             .exists(methodOfAnnottee => helper(c)(methodOfAnnottee, i))
@@ -81,21 +82,29 @@ object identityMacro {
     c.Expr[Any](resTree)
   }
 
-  private def helper(c: whitebox.Context)(annotteeMethod: c.universe.DefDef, interfaceMethod: c.universe.MethodSymbol): Boolean = {
+  private def helper(c: whitebox.Context)(
+      annotteeMethod: c.universe.DefDef,
+      interfaceMethod: c.universe.MethodSymbol
+  ): Boolean = {
     import c.universe._
     val sameMethodName = annotteeMethod.name == interfaceMethod.name
 
     val annotteeMethodParamTypes: List[List[Type]] =
-      annotteeMethod.vparamss.map(_.map(i => c.typecheck(i.tpt, mode = c.TYPEmode).tpe))
+      annotteeMethod.vparamss.map(
+        _.map(i => c.typecheck(i.tpt, mode = c.TYPEmode).tpe)
+      )
 
-    val interfaceMethodParamTypes: List[List[Type]] = interfaceMethod.paramLists.map(_.map(_.typeSignature))
+    val interfaceMethodParamTypes: List[List[Type]] =
+      interfaceMethod.paramLists.map(_.map(_.typeSignature))
 
-    val sameParamSignature = if (annotteeMethodParamTypes.size == interfaceMethodParamTypes.size) {
-      (interfaceMethodParamTypes zip annotteeMethodParamTypes).forall {
-        case (xs, ys) if xs.size == ys.size => (xs zip ys).forall { case (x, y) => x =:= y }
-        case _ => false
-      }
-    } else false
+    val sameParamSignature =
+      if (annotteeMethodParamTypes.size == interfaceMethodParamTypes.size) {
+        (interfaceMethodParamTypes zip annotteeMethodParamTypes).forall {
+          case (xs, ys) if xs.size == ys.size =>
+            (xs zip ys).forall { case (x, y) => x =:= y }
+          case _ => false
+        }
+      } else false
 
     sameMethodName && sameParamSignature
   }
