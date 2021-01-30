@@ -4,6 +4,9 @@ import scala.annotation.{StaticAnnotation, compileTimeOnly}
 import scala.language.experimental.macros
 import scala.reflect.macros.whitebox
 
+/**
+  * Bla bla bla
+  */
 @compileTimeOnly("enable macro paradise to expand macro annotations")
 class Proxy extends StaticAnnotation {
   def macroTransform(annottees: Any*): Any = macro identityMacro.impl
@@ -67,10 +70,12 @@ object identityMacro {
             .exists(methodOfAnnottee => helper(c)(methodOfAnnottee, i))
         )
         .map { methodDecl =>
-          val params = methodDecl.paramLists.map(
+          val paramss = methodDecl.paramLists.map(
             _.map(param => q"${param.name.toTermName}: ${param.typeSignature}")
           )
-          q"def ${methodDecl.name}(...$params): ${methodDecl.returnType} = ${delegateParamTree.name}.${methodDecl.name}(...${methodDecl.paramLists
+          val tparams = methodDecl.typeParams.map(i => internal.typeDef(i))
+
+          q"def ${methodDecl.name}[..$tparams](...$paramss): ${methodDecl.returnType} = ${delegateParamTree.name}.${methodDecl.name}(...${methodDecl.paramLists
             .map(_.map(_.name.toTermName))})"
         }
 
@@ -87,26 +92,19 @@ object identityMacro {
       interfaceMethod: c.universe.MethodSymbol
   ): Boolean = {
     import c.universe._
-    val sameMethodName = annotteeMethod.name == interfaceMethod.name
+    val sameName = annotteeMethod.name == interfaceMethod.name
 
-    val annotteeMethodParamTypes: List[List[Type]] =
-      annotteeMethod.vparamss.map(
-        _.map(i => c.typecheck(i.tpt, mode = c.TYPEmode).tpe)
-      )
+    // we remove the body because it can contain references that, at this score, the type checker could not verify.
+    val annotteeMethodNoBody = annotteeMethod match {
+      case DefDef(modifiers, name, tparams, vparamss, tpt, rhs) =>
+        DefDef(modifiers, name, tparams, vparamss, tpt, EmptyTree)
+    }
 
-    val interfaceMethodParamTypes: List[List[Type]] =
-      interfaceMethod.paramLists.map(_.map(_.typeSignature))
+    val sameSignature = interfaceMethod.asMethod.typeSignature =:= (c.typecheck(annotteeMethodNoBody, mode = c.TERMmode) match {
+      case a: DefDef => a
+    }).symbol.asMethod.typeSignature
 
-    val sameParamSignature =
-      if (annotteeMethodParamTypes.size == interfaceMethodParamTypes.size) {
-        (interfaceMethodParamTypes zip annotteeMethodParamTypes).forall {
-          case (xs, ys) if xs.size == ys.size =>
-            (xs zip ys).forall { case (x, y) => x =:= y }
-          case _ => false
-        }
-      } else false
-
-    sameMethodName && sameParamSignature
+    sameName && sameSignature
   }
 
 }
