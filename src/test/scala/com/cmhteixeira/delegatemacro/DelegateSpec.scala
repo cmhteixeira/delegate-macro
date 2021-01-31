@@ -1,4 +1,4 @@
-package com.cmhteixeira.proxy_macro
+package com.cmhteixeira.delegatemacro
 
 import org.scalatest.{FlatSpec, Matchers}
 
@@ -12,14 +12,14 @@ trait Foo {
   def barBaz(a: String): String = s"Default-Implementation-$a"
 }
 
-class ProxyMacroSpec extends FlatSpec with Matchers {
+class DelegateSpec extends FlatSpec with Matchers {
 
   "Interfaces that do not inherit and only abstract methods, and classes with no declarations" should "delegate to member" in {
     class DBServiceImpl extends DBService {
       override def retrieveRecord(id: Int): String = "FooBar"
     }
 
-    @Proxy
+    @Delegate
     class TestSubject(dbService: DBService) extends DBService
 
     new TestSubject(new DBServiceImpl).retrieveRecord(0) shouldBe "FooBar"
@@ -30,7 +30,7 @@ class ProxyMacroSpec extends FlatSpec with Matchers {
       override def retrieveRecord(id: Int): String = "FooBar"
     }
 
-    @Proxy
+    @Delegate
     class TestSubject(dbService: DBService) extends DBService {
       def methodA(foo: Int, bar: String): Boolean = true
     }
@@ -44,7 +44,7 @@ class ProxyMacroSpec extends FlatSpec with Matchers {
       override def retrieveRecord(id: Int): String = "FooBar"
     }
 
-    @Proxy
+    @Delegate
     class TestSubject(
         dbService: DBService,
         otherMember: String = "<not-relevant>"
@@ -62,7 +62,7 @@ class ProxyMacroSpec extends FlatSpec with Matchers {
       override def retrieveRecord(id: Int): String = "FooBar"
     }
 
-    @Proxy
+    @Delegate
     class TestSubject(otherMember: String, dbService: DBService) extends DBService {
       def methodA(foo: Int, bar: String): Boolean = true
     }
@@ -80,7 +80,7 @@ class ProxyMacroSpec extends FlatSpec with Matchers {
       override def baz(a: Int, b: String): String = "FooImpl-baz"
     }
 
-    @Proxy
+    @Delegate
     class TestSubject(arg: String, delegatee: Foo) extends Foo {
       def baz(a: Int, b: String): String = arg
     }
@@ -95,7 +95,7 @@ class ProxyMacroSpec extends FlatSpec with Matchers {
       override def retrieveRecord(id: Int): String = "FooBar"
     }
 
-    @Proxy
+    @Delegate
     class TestSubject(a: DBService) extends DBService {
       def retrieveRecord(id: String): String = "Overloaded-Method"
     }
@@ -111,7 +111,7 @@ class ProxyMacroSpec extends FlatSpec with Matchers {
       override def baz(a: Int, b: String): String = "not-relevant"
     }
 
-    @Proxy
+    @Delegate
     class TestSubject(delegatee: Foo) extends Foo
 
     new TestSubject(new FooImpl).bar(1, "Carlos")("Manuel", 2) shouldBe
@@ -128,7 +128,7 @@ class ProxyMacroSpec extends FlatSpec with Matchers {
       override def barBaz(a: String): String = s"FooImpl-$a"
     }
 
-    @Proxy
+    @Delegate
     class TestSubject(delegatee: Foo) extends Foo
 
     new TestSubject(new FooImpl)

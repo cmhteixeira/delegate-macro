@@ -1,18 +1,51 @@
-package com.cmhteixeira.proxy_macro
+package com.cmhteixeira.delegatemacro
 
 import scala.annotation.{StaticAnnotation, compileTimeOnly}
 import scala.language.experimental.macros
 import scala.reflect.macros.whitebox
 
-/**
-  * Bla bla bla
+/** Macro to proxy implementation of abstract methods to a dependency.
+  *
+  * ==Motivation==
+  * Apply this macro to a class that implements an interface with abstract methods. At compile-time, the macro will
+  * implement the interface methods on your class using a dependency that you inject on that class, with the exception
+  * of the methods you implement manually on the source code.
+  * The value is in saving you from the tedious task of doing that yourself. It is the more usefull the more methods
+  * in the interface there are.
+  *
+  * ==Example==
+  * {{{
+  * trait Connection {
+  *   def method1(a: String): String
+  *   def method2(a: String): String
+  *   // 96 other abstract methods
+  *   def method100(a: String): String
+  * }
+  *
+  * @Delegate
+  * class MyConnection(delegatee: Connection) extends Connection {
+  *   def method10(a: String): String = "Only method I want to implement manually"
+  * }
+  *
+  * // The source code above would be equivalent, after the macro expansion, to the code below
+  * class MyConnection(delegatee: Connection) extends Connection {
+  *   def method1(a: String): String = delegatee.method1(a)
+  *   def method2(a: String): String = delegatee.method2(a)
+  *   def method10(a: String): String = "Only method I need to implement manually"
+  *   // 96 other methods that are proxied to the dependency delegatee
+  *   def method100(a: String): String = = delegatee.method100(a)
+  * }
+  *
+  * }}}
+  *
+  *
   */
 @compileTimeOnly("enable macro paradise to expand macro annotations")
-class Proxy extends StaticAnnotation {
-  def macroTransform(annottees: Any*): Any = macro identityMacro.impl
+class Delegate extends StaticAnnotation {
+  def macroTransform(annottees: Any*): Any = macro delegateMacro.impl
 }
 
-object identityMacro {
+object delegateMacro {
 
   def impl(c: whitebox.Context)(annottees: c.Expr[Any]*): c.Expr[Any] = {
     import c.universe._
@@ -94,7 +127,7 @@ object identityMacro {
     import c.universe._
     val sameName = annotteeMethod.name == interfaceMethod.name
 
-    // we remove the body because it can contain references that, at this score, the type checker could not verify.
+    // we remove the body because it can contain references that, at this stage, the type checker could not verify.
     val annotteeMethodNoBody = annotteeMethod match {
       case DefDef(modifiers, name, tparams, vparamss, tpt, rhs) =>
         DefDef(modifiers, name, tparams, vparamss, tpt, EmptyTree)

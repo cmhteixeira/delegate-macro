@@ -1,7 +1,7 @@
-package com.cmhteixeira.proxy_macro.with_type_parameters
+package com.cmhteixeira.delegatemacro.with_type_parameters
 
 import org.scalatest.{FlatSpec, Matchers}
-import com.cmhteixeira.proxy_macro.Proxy
+import com.cmhteixeira.delegatemacro.Delegate
 
 trait Foo {
   def bar[A](a1: A, a2: A): A
@@ -16,13 +16,13 @@ trait Foo3 {
   def baz[A](a1: A, a2: A): A
 }
 
-class SomeSpec extends FlatSpec with Matchers {
+class DelegateWithTypeParamsSpec extends FlatSpec with Matchers {
   "The macro" should "delegate methods parameterized by one type" in {
     class FooImpl extends Foo {
       override def bar[A](a1: A, a2: A): A = a1
     }
 
-    @Proxy
+    @Delegate
     class TestSubject(delegatee: Foo) extends Foo
 
     new TestSubject(new FooImpl).bar("Qux", "Quux") shouldBe "Qux"
@@ -33,7 +33,7 @@ class SomeSpec extends FlatSpec with Matchers {
       override def bar[A, B, C](a: A, b: B)(f: (A, B) => C): C = f(a, b)
     }
 
-    @Proxy
+    @Delegate
     class TestSubject(delegatee: Foo2) extends Foo2
 
     new TestSubject(new FooImpl).bar("Foo", true)((a, b) => a + b.toString) shouldBe "Footrue"
@@ -46,7 +46,7 @@ class SomeSpec extends FlatSpec with Matchers {
       override def baz[A](a1: A, a2: A): A = a1
     }
 
-    @Proxy
+    @Delegate
     class TestSubject(delegatee: Foo3) extends Foo3 {
       def baz[A](a1: A, a2: A): A = a2
     }

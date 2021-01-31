@@ -1,4 +1,4 @@
-package com.cmhteixeira.proxy_macro {
+package com.cmhteixeira.delegatemacro {
 
   package foo {
 
