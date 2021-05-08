@@ -78,12 +78,6 @@ tasks.withType(ScalaCompile){
         parameters.addAll(existingParameters)
     }
 
-    // Add whatever flags you typically add
-    parameters += [
-            '-language:implicitConversions',
-            '-language:higherKinds'
-    ]
-
     // Finally set the additionalParameters
     scalaCompileOptions.additionalParameters = parameters
 }
