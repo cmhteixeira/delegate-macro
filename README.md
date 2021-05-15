@@ -34,8 +34,21 @@ class YourClass(delegatee: Foo) extends Foo {
 }
 ```
 
-## Intellij
+## Support
 
-Intellij won't be able to expand the macro.   
-It will indicate your class has an error whereby it needs to implement abstract members.  
-This is aesthetically unpleaseant, but of no real consequence. The solution would be to develop a plugin for Intellij for this macro. 
+| Library | Scala 2.11 | Scala 2.12 | Scala 2.13 |
+|---------|------------|------------|------------|
+| 0.1.1   | Yes        | Yes        | Yes        |
+
+| Scala 2.11                                                  | Scala 2.12                                                 | Scala 2.13                                                           |
+|-------------------------------------------------------------|------------------------------------------------------------|----------------------------------------------------------------------|
+| Import macro paradise plugin  | Import macro paradise plugin | Compiler flag "-Ymacro-annotations" required |
+
+### Intellij
+
+There is no Intellij support.  
+This means, regardless of your Scala version, Intellij won't be able to expand the macro. Therefore, it will underline your annotated class with those red squiggly lines, stating your class does not implement all methods of the interface.  
+Don't worry about that. It is aesthetically unpleaseant, but of no real consequence.   
+The solution would be to develop a public plugin for Intellij for this macro.
+
+![](./documentation/ExampleRedLinesIntellijSupport.png)

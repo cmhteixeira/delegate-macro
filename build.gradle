@@ -7,12 +7,11 @@ plugins {
 }
 
 ext {
-    projectVersion = "0.1.0"
-    scalaVersion = "2.12.8"
+    projectVersion = "0.1.0-SNAPSHOT"
     scalaMinorVersion = computeScalaMinorVersion(scalaVersion)
     scalaMacroParadise = "2.1.1"
     pegdown = "1.4.2"
-    scalaTest = "3.0.2"
+    scalaTest = "3.0.9"
     macroParadise = "2.1.1"
 }
 
@@ -30,52 +29,120 @@ version "${projectVersion}"
 
 sourceCompatibility = 1.8
 
+jar {
+    archivesBaseName = "${project.name}_${computeScalaMinorVersion(scalaVersion)}"
+}
+
+
 publishing {
     publications {
-        maven(MavenPublication) {
+        myStandardPublication(MavenPublication) {
+            from components.java
+
             groupId = "${project.group}"
-            artifactId = "${project.name}_${scalaMinorVersion}"
+            artifactId = "${project.name}_${computeScalaMinorVersion("$scalaVersion")}"
             version = "${projectVersion}"
 
-            from components.java
+            pom {
+                url = "https://github.com/cmhteixeira/delegate-macro"
+                developers {
+                    developer {
+                        id = "cmhteixeira"
+                        name = "Carlos Teixeira"
+                        email = "c.mh.teixeira@gmail.com"
+                        url = "https://github.com/cmhteixeira"
+                    }
+                }
+            }
         }
+    }
+
+    repositories {
+        maven {
+            name = "This-Is-My-Local-Maven-Repo"
+            if (project.version.endsWith('-SNAPSHOT')) {
+                url 'file://C:/PersonalProjects/local-maven-repo-SNAPSHOTS'
+            } else {
+                url 'file://C:/PersonalProjects/local-maven-repo-RELEASES'
+            }
+        }
+
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/cmhteixeira/delegate-macro")
+            credentials {
+                username = System.getenv("GITHUB_USERNAME")
+                password = System.getenv("GITHUB_TOKEN")
+            }
+        }
+    }
+}
+
+tasks.create(name: "printScalaVersion") {
+    description = "Prints to the console the scala version being used."
+    doLast {
+        println("Scala version is: ${scalaVersion}")
+    }
+}
+
+for (coreTask in ["compileScala", "compileTestScala", "build", "test", "publish"]) {
+    def allScalaVersions = ["2.11.12", "2.12.13", "2.13.5"]
+    for (sv in allScalaVersions) {
+        tasks.create(name: "${coreTask}${computeScalaMinorVersion("$sv").replace(".", "")}", type: GradleBuild) {
+            description = "Runs the '${coreTask}' task with the scala version set to $sv (Minor version: ${computeScalaMinorVersion("$sv")})"
+            buildFile = './build.gradle'
+            startParameter.projectProperties = [scalaVersion: "${sv}"]
+            tasks = ["printScalaVersion", "${coreTask}".toString()]
+        }
+    }
+    def taskAcrossVersions = allScalaVersions.collect{sv -> "${coreTask}${computeScalaMinorVersion(sv).replace(".", "")}".toString()}
+    tasks.create(name: "${coreTask}All", dependsOn: taskAcrossVersions) {
+        description = "Runs tasks ${taskAcrossVersions.join(", ")}".toString()
     }
 }
 
 repositories {
     mavenCentral()
-    jcenter()
 }
 
 spotless {
     scala {
         scalafmt("2.3.2").configFile(".scalafmt.conf")
     }
-
 }
 
 dependencies {
     compile("org.scala-lang:scala-library:$scalaVersion")
 
+    if (computeScalaMinorVersion(scalaVersion) < "2.13") {
+        // On version 2.13, the functionality became directly supported by the compiler under flag '-Ymacro-annotations'
+        scalaCompilerPlugin "org.scalamacros:paradise_$scalaVersion:$macroParadise"
+    }
+
     compile("org.scala-lang:scala-compiler:$scalaVersion")
-    scalaCompilerPlugin "org.scalamacros:paradise_$scalaVersion:$macroParadise"
     compile("org.scala-lang:scala-reflect:$scalaVersion")
+
 
     testCompile("org.scalatest:scalatest_$scalaMinorVersion:$scalaTest")
     testRuntime("org.pegdown:pegdown:$pegdown")
 }
 
-tasks.withType(ScalaCompile){
+tasks.withType(ScalaCompile) {
     // Map plugin jars to -Xplugin parameter
     List<String> parameters =
             configurations.scalaCompilerPlugin.files.collect {
-                '-Xplugin:'+ it.absolutePath
+                '-Xplugin:' + it.absolutePath
             }
 
     // Add existing parameters
     List<String> existingParameters = scalaCompileOptions.additionalParameters
-    if (existingParameters) {
+    if (existingParameters && computeScalaMinorVersion(scalaVersion) == "2.13") { // todo: Does this case make sense?
         parameters.addAll(existingParameters)
+        parameters.add("-Ymacro-annotations")
+    } else if (existingParameters) {
+        parameters.addAll(existingParameters)
+    } else if (computeScalaMinorVersion(scalaVersion) == "2.13") {
+        parameters.add("-Ymacro-annotations")
     }
 
     // Finally set the additionalParameters
