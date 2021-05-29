@@ -29,6 +29,27 @@ version "${projectVersion}"
 
 sourceCompatibility = 1.8
 
+buildDir = "build${computeScalaMinorVersion(scalaVersion).replace(".", "")}"
+
+// Gradle adds this task which generates extra files on the publication.
+// We are not interested in this.
+tasks.withType(GenerateModuleMetadata) {
+    enabled = false
+}
+
+// Creates a jar with the output of the 'scalaDoc' task
+task scaladocJar(type:Jar, dependsOn: scaladoc) {
+    archiveClassifier = 'javadoc'
+    from scaladoc.destinationDir
+}
+
+// Creates a jar with the source code
+task sourcesJar(type: Jar) {
+    archiveClassifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+
 jar {
     archivesBaseName = "${project.name}_${computeScalaMinorVersion(scalaVersion)}"
 }
@@ -38,6 +59,8 @@ publishing {
     publications {
         myStandardPublication(MavenPublication) {
             from components.java
+            artifact scaladocJar  // Publication should include the scala docs
+            artifact sourcesJar   // Publication should include the source code.
 
             groupId = "${project.group}"
             artifactId = "${project.name}_${computeScalaMinorVersion("$scalaVersion")}"
@@ -88,7 +111,8 @@ tasks.create(name: "printScalaVersion") {
 for (coreTask in ["compileScala", "compileTestScala", "build", "test", "publish"]) {
     def allScalaVersions = ["2.11.12", "2.12.13", "2.13.5"]
     for (sv in allScalaVersions) {
-        tasks.create(name: "${coreTask}${computeScalaMinorVersion("$sv").replace(".", "")}", type: GradleBuild) {
+        def minorVersion = computeScalaMinorVersion("$sv").replace(".", "")
+        tasks.create(name: "${coreTask}${minorVersion}", type: GradleBuild) {
             description = "Runs the '${coreTask}' task with the scala version set to $sv (Minor version: ${computeScalaMinorVersion("$sv")})"
             buildFile = './build.gradle'
             startParameter.projectProperties = [scalaVersion: "${sv}"]
