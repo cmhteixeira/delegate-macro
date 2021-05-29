@@ -2,9 +2,17 @@ language: scala
 jdk: openjdk8
 before_install:
   - chmod +x gradlew
-script:
-  - echo $TRAVIS_COMMIT
-  - echo $TRAVIS_TAG
-  - echo $TRAVIS_BRANCH
-  - echo $TRAVIS_BUILD_NUMBER
-  - echo $TRAVIS_REPO_SLUG
+jobs:
+  include:
+    - stage: Compile-All-Versions
+      script: ./gradlew compileScala211
+    - script: ./gradlew compileScala212
+    - script: ./gradlew compileScala213
+    - stage: Test-All-Versions
+      script: ./gradlew test211
+    - script: ./gradlew test212
+    - script: ./gradlew test213
+    - stage: Publish-All-Versions
+      script: ./gradlew publish211
+    - script: ./gradlew publish212
+    - script: ./gradlew publish213

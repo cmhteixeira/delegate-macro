@@ -82,15 +82,6 @@ publishing {
 
     repositories {
         maven {
-            name = "This-Is-My-Local-Maven-Repo"
-            if (project.version.endsWith('-SNAPSHOT')) {
-                url 'file://C:/PersonalProjects/local-maven-repo-SNAPSHOTS'
-            } else {
-                url 'file://C:/PersonalProjects/local-maven-repo-RELEASES'
-            }
-        }
-
-        maven {
             name = "GitHubPackages"
             url = uri("https://maven.pkg.github.com/cmhteixeira/delegate-macro")
             credentials {
