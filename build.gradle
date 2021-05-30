@@ -2,12 +2,13 @@ plugins {
     id 'java'
     id 'scala'
     id 'maven-publish'
+    id 'signing'
     id "com.diffplug.gradle.spotless" version "${spotlessPluginVersion}"
     id "com.github.maiflai.scalatest" version "${scalaTestPluginVersion}"
 }
 
 ext {
-    projectVersion = "0.1.0-SNAPSHOT"
+    projectVersion = "0.1.0"
     scalaMinorVersion = computeScalaMinorVersion(scalaVersion)
     scalaMacroParadise = "2.1.1"
     pegdown = "1.4.2"
@@ -38,7 +39,7 @@ tasks.withType(GenerateModuleMetadata) {
 }
 
 // Creates a jar with the output of the 'scalaDoc' task
-task scaladocJar(type:Jar, dependsOn: scaladoc) {
+task scaladocJar(type: Jar, dependsOn: scaladoc) {
     archiveClassifier = 'javadoc'
     from scaladoc.destinationDir
 }
@@ -54,7 +55,6 @@ jar {
     archivesBaseName = "${project.name}_${computeScalaMinorVersion(scalaVersion)}"
 }
 
-
 publishing {
     publications {
         myStandardPublication(MavenPublication) {
@@ -67,7 +67,19 @@ publishing {
             version = "${projectVersion}"
 
             pom {
+                name = "delegate-macro"
+                description = "Annotation to automatically delegate/proxy implementation of interface to dependency"
                 url = "https://github.com/cmhteixeira/delegate-macro"
+                scm {
+                    connection = "git@github.com:cmhteixeira/delegate-macro.git"
+                    url = "https://github.com/cmhteixeira/delegate-macro"
+                }
+                licenses {
+                    license {
+                        name = "MIT License"
+                        url = "http://www.opensource.org/licenses/mit-license.php"
+                    }
+                }
                 developers {
                     developer {
                         id = "cmhteixeira"
@@ -82,6 +94,20 @@ publishing {
 
     repositories {
         maven {
+            name = "MavenCentral"
+            if (projectVersion.endsWith("SNAPSHOT")) {
+                url = uri("https://oss.sonatype.org/content/repositories/snapshots/")
+            } else {
+                url = uri("https://oss.sonatype.org/service/local/staging/deploy/maven2/")
+            }
+
+            credentials {
+                username = System.getenv("ossrhUsername")
+                password = System.getenv("ossrhPassword")
+            }
+        }
+
+        maven {
             name = "GitHubPackages"
             url = uri("https://maven.pkg.github.com/cmhteixeira/delegate-macro")
             credentials {
@@ -90,6 +116,20 @@ publishing {
             }
         }
     }
+}
+
+
+signing {
+    def signingKey = System.getenv("signingKey")
+    def signingPassword = System.getenv("signingPassword")
+    useInMemoryPgpKeys(signingKey, signingPassword)
+
+    sign publishing.publications.myStandardPublication
+}
+
+// We only want to sign artifacts if it is a release
+tasks.withType(Sign) {
+    onlyIf { !projectVersion.endsWith("SNAPSHOT") }
 }
 
 tasks.create(name: "printScalaVersion") {
@@ -110,7 +150,7 @@ for (coreTask in ["compileScala", "compileTestScala", "build", "test", "publish"
             tasks = ["printScalaVersion", "${coreTask}".toString()]
         }
     }
-    def taskAcrossVersions = allScalaVersions.collect{sv -> "${coreTask}${computeScalaMinorVersion(sv).replace(".", "")}".toString()}
+    def taskAcrossVersions = allScalaVersions.collect { sv -> "${coreTask}${computeScalaMinorVersion(sv).replace(".", "")}".toString() }
     tasks.create(name: "${coreTask}All", dependsOn: taskAcrossVersions) {
         description = "Runs tasks ${taskAcrossVersions.join(", ")}".toString()
     }
