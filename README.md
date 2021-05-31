@@ -1,4 +1,4 @@
-# Delegate Macro &emsp; [![Build Status](https://www.travis-ci.com/cmhteixeira/delegate-macro.svg?branch=master)](https://www.travis-ci.com/cmhteixeira/delegate-macro)
+# Delegate Macro &emsp; [![Build Status](https://www.travis-ci.com/cmhteixeira/delegate-macro.svg?branch=master)](https://www.travis-ci.com/cmhteixeira/delegate-macro) [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.cmhteixeira/delegate-macro_2.13/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.cmhteixeira/delegate-macro_2.13)
 
 ## Motivation
 This macro enables you to delegate/proxy the implementation of an interface to an injected dependency in a very straightforward way. It saves you from the tedious work of doing it manually.
@@ -36,9 +36,13 @@ class MyConnection(delegatee: Connection) extends Connection {
 
 ## Support
 
-| Library | Scala 2.11 | Scala 2.12 | Scala 2.13 |
+The artefacts have been uploaded to Maven Central. Alternatively, they are also available on the GitHub registry. 
+
+| Library Version | Scala 2.11 | Scala 2.12 | Scala 2.13 |
 |---------|------------|------------|------------|
-| 0.1.1   | Yes        | Yes        | Yes        |
+| 0.1.0   | [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.cmhteixeira/delegate-macro_2.11/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.cmhteixeira/delegate-macro_2.11)        | [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.cmhteixeira/delegate-macro_2.12/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.cmhteixeira/delegate-macro_2.12)        | [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.cmhteixeira/delegate-macro_2.13/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.cmhteixeira/delegate-macro_2.13)        |
+
+Importing the library into your build system (e.g gradle, sbt), is not enough. Before Scala 3, support for macros is a bit clunky. You need to follow an extra step.  
 
 | Scala 2.11                                                  | Scala 2.12                                                 | Scala 2.13                                                           |
 |-------------------------------------------------------------|------------------------------------------------------------|----------------------------------------------------------------------|
