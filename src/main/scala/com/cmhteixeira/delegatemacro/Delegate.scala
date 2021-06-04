@@ -69,7 +69,7 @@ object delegateMacro {
         c.typecheck(head, mode = c.TYPEmode)
     }
 
-    val delegateParamOpt: Option[(Type, ValDef)] = annotteeClassParams
+    val delegateeParamOpt: Option[(Type, ValDef)] = annotteeClassParams
       .asInstanceOf[List[List[Tree]]]
       .flatten
       .flatMap {
@@ -82,13 +82,14 @@ object delegateMacro {
       }
       .headOption
 
-    val (delegateParamType, delegateParamTree) = delegateParamOpt.getOrElse(
-      throw new Exception(
-        s"Annottee does not contain any parameter of type ${superClassTypedTree.tpe.termSymbol.fullName}"
+    val (delegateeParamType, delegateeParamTree) = delegateeParamOpt.getOrElse {
+      c.abort(
+        c.enclosingPosition,
+        s"Annottee does not contain any parameter of type ${superClassTypedTree.tpe.termSymbol.fullName} to which to delegate."
       )
-    )
+    }
 
-    val declarationsInterface = delegateParamType.decls.toList.collect {
+    val declarationsInterface = delegateeParamType.decls.toList.collect {
       case i if i.isMethod => i.asMethod
     }
 
@@ -98,9 +99,9 @@ object delegateMacro {
     val interfaceMethods =
       declarationsInterface
         .filter(_.isAbstract)
-        .filter(i =>
+        .filter(interfaceDecl =>
           !methodsOfAnnottee
-            .exists(methodOfAnnottee => helper(c)(methodOfAnnottee, i))
+            .exists(methodOfAnnottee => helper(c)(methodOfAnnottee, interfaceDecl))
         )
         .map { methodDecl =>
           val paramss = methodDecl.paramLists.map(
@@ -108,7 +109,7 @@ object delegateMacro {
           )
           val tparams = methodDecl.typeParams.map(i => internal.typeDef(i))
 
-          q"def ${methodDecl.name}[..$tparams](...$paramss): ${methodDecl.returnType} = ${delegateParamTree.name}.${methodDecl.name}(...${methodDecl.paramLists
+          q"def ${methodDecl.name}[..$tparams](...$paramss): ${methodDecl.returnType} = ${delegateeParamTree.name}.${methodDecl.name}(...${methodDecl.paramLists
             .map(_.map(_.name.toTermName))})"
         }
 
