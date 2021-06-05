@@ -3,6 +3,7 @@ package com.cmhteixeira.delegatemacro
 import scala.annotation.{StaticAnnotation, compileTimeOnly}
 import scala.language.experimental.macros
 import scala.reflect.macros.whitebox
+import scala.util.Success
 
 /** Macro to proxy implementation of abstract methods to a dependency.
   *
@@ -50,7 +51,7 @@ object delegateMacro {
   def impl(c: whitebox.Context)(annottees: c.Expr[Any]*): c.Expr[Any] = {
     import c.universe._
 
-    val annotteeClass: ClassDef = annottees.map(_.tree).toList match {
+    val annotateeClass: ClassDef = annottees.map(_.tree).toList match {
       case (claz: ClassDef) :: Nil => claz
       case _ =>
         throw new Exception(
@@ -59,7 +60,7 @@ object delegateMacro {
     }
 
     val (annotteeClassParents, annotteeClassParams, annotteeClassDefinitions) =
-      annotteeClass match {
+      annotateeClass match {
         case q"$mods class $tpname[..$tparams] $ctorMods(...$paramss) extends { ..$earlydefns } with ..$parents { $self => ..$stats }" =>
           (parents, paramss, stats)
       }
@@ -69,51 +70,58 @@ object delegateMacro {
         c.typecheck(head, mode = c.TYPEmode)
     }
 
-    val delegateeParamOpt: Option[(Type, ValDef)] = annotteeClassParams
+    val delegateeParamOpt = annotteeClassParams
       .asInstanceOf[List[List[Tree]]]
       .flatten
       .flatMap {
         case tree @ q"$mods val $tname1: $tpt = $expr" =>
-          val theType = c.typecheck(tpt, mode = c.TYPEmode).tpe
-          if (theType =:= superClassTypedTree.tpe)
-            Some((theType, tree.asInstanceOf[ValDef]))
-          else None
+          val theTypeOpt = scala.util.Try { c.typecheck(tpt, mode = c.TYPEmode).tpe }.toOption
+          theTypeOpt.flatMap { theType =>
+            if (theType =:= superClassTypedTree.tpe)
+              Some((theType, tree.asInstanceOf[ValDef]))
+            else None
+          }
         case _ => None
       }
       .headOption
 
-    val (delegateeParamType, delegateeParamTree) = delegateeParamOpt.getOrElse {
+    val (delegateeType, delegateeParamTree) = delegateeParamOpt.getOrElse {
       c.abort(
         c.enclosingPosition,
         s"Annottee does not contain any parameter of type ${superClassTypedTree.tpe.termSymbol.fullName} to which to delegate."
       )
     }
 
-    val declarationsInterface = delegateeParamType.decls.toList.collect {
+    val declarationsInterface = delegateeType.decls.toList.collect {
       case i if i.isMethod => i.asMethod
     }
 
-    val methodsOfAnnottee: Seq[DefDef] = annotteeClassDefinitions.collect {
+    val methodsOfAnnotatee: Seq[DefDef] = annotteeClassDefinitions.collect {
       case defDef: DefDef => defDef
     }
+
     val interfaceMethods =
       declarationsInterface
         .filter(_.isAbstract)
         .filter(interfaceDecl =>
-          !methodsOfAnnottee
-            .exists(methodOfAnnottee => helper(c)(methodOfAnnottee, interfaceDecl))
+          !methodsOfAnnotatee
+            .exists(methodOfAnnotatee => helper(c)(methodOfAnnotatee, interfaceDecl, delegateeType))
         )
-        .map { methodDecl =>
-          val paramss = methodDecl.paramLists.map(
-            _.map(param => q"${param.name.toTermName}: ${param.typeSignature}")
-          )
-          val tparams = methodDecl.typeParams.map(i => internal.typeDef(i))
+        .map { delegateeMethod =>
+          val paramss = delegateeMethod
+            .infoIn(delegateeType)
+            .paramLists
+            .map(
+              _.map(param => q"${param.name.toTermName}: ${param.typeSignature}")
+            )
+          val tparams = delegateeMethod.typeParams.map(i => internal.typeDef(i))
+          val resultType = delegateeMethod.typeSignatureIn(delegateeType).finalResultType
 
-          q"def ${methodDecl.name}[..$tparams](...$paramss): ${methodDecl.returnType} = ${delegateeParamTree.name}.${methodDecl.name}(...${methodDecl.paramLists
+          q"def ${delegateeMethod.name}[..$tparams](...$paramss): $resultType = ${delegateeParamTree.name}.${delegateeMethod.name}(...${delegateeMethod.paramLists
             .map(_.map(_.name.toTermName))})"
         }
 
-    val resTree = annotteeClass match {
+    val resTree = annotateeClass match {
       case q"$mods class $tpname[..$tparams] $ctorMods(...$paramss) extends { ..$earlydefns } with ..$parents { $self => ..$stats }" =>
         q"$mods class $tpname[..$tparams] $ctorMods(...$paramss) extends { ..$earlydefns } with ..$parents { $self => ..${stats.toList ::: interfaceMethods} }"
     }
@@ -122,21 +130,25 @@ object delegateMacro {
   }
 
   private def helper(c: whitebox.Context)(
-      annotteeMethod: c.universe.DefDef,
-      interfaceMethod: c.universe.MethodSymbol
+    annotateeMethod: c.universe.DefDef,
+    delegateeMethod: c.universe.MethodSymbol,
+    delegateeType: c.Type
   ): Boolean = {
     import c.universe._
-    val sameName = annotteeMethod.name == interfaceMethod.name
+    val sameName = annotateeMethod.name == delegateeMethod.name
 
     // we remove the body because it can contain references that, at this stage, the type checker could not verify.
-    val annotteeMethodNoBody = annotteeMethod match {
+    val annotteeMethodNoBody = annotateeMethod match {
       case DefDef(modifiers, name, tparams, vparamss, tpt, rhs) =>
         DefDef(modifiers, name, tparams, vparamss, tpt, EmptyTree)
     }
 
-    val sameSignature = interfaceMethod.asMethod.typeSignature =:= (c.typecheck(annotteeMethodNoBody, mode = c.TERMmode) match {
-      case a: DefDef => a
-    }).symbol.asMethod.typeSignature
+    val signatureAnnotatee = (scala.util.Try { c.typecheck(annotteeMethodNoBody, mode = c.TERMmode) } match {
+      case Success(defdef: DefDef) => Some(defdef)
+      case _ => None
+    }).map(_.symbol.asMethod.typeSignature).getOrElse(NoType)
+
+    val sameSignature = delegateeMethod.asMethod.infoIn(delegateeType) =:= signatureAnnotatee
 
     sameName && sameSignature
   }
