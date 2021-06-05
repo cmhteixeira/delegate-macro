@@ -2,19 +2,19 @@ package com.cmhteixeira.delegatemacro
 
 import org.scalatest.{FlatSpec, Matchers}
 
-trait DBService {
-  def retrieveRecord(id: Int): String
-}
+class SimplestInterfaceSpec extends FlatSpec with Matchers {
 
-trait Foo {
-  def bar(a1: Int, a2: String)(b1: String, b2: Int): String
-  def baz(a: Int, b: String): String
-  def barBaz(a: String): String = s"Default-Implementation-$a"
-}
+  trait DBService {
+    def retrieveRecord(id: Int): String
+  }
 
-class DelegateSpec extends FlatSpec with Matchers {
+  trait Foo {
+    def bar(a1: Int, a2: String)(b1: String, b2: Int): String
+    def baz(a: Int, b: String): String
+    def barBaz(a: String): String = s"Default-Implementation-$a"
+  }
 
-  "Interfaces that do not inherit and only abstract methods, and classes with no declarations" should "delegate to member" in {
+  "The annotation" should "delegate to simple member" in {
     class DBServiceImpl extends DBService {
       override def retrieveRecord(id: Int): String = "FooBar"
     }
@@ -47,7 +47,7 @@ class DelegateSpec extends FlatSpec with Matchers {
     @Delegate
     class TestSubject(
         dbService: DBService,
-        otherMember: String = "<not-relevant>"
+        val otherMember: String = "<not-relevant>"
     ) extends DBService {
       def methodA(foo: Int, bar: String): Boolean = true
     }
@@ -55,9 +55,10 @@ class DelegateSpec extends FlatSpec with Matchers {
     val instance = new TestSubject(new DBServiceImpl)
     instance.methodA(0, "<not-relevant>") shouldBe true
     instance.retrieveRecord(0) shouldBe "FooBar"
+    instance.otherMember shouldBe "<not-relevant>"
   }
 
-  it should "be able to contain such parameters before the proxy" in {
+  it should "be able to contain such parameters before the delegatee" in {
     class DBServiceImpl extends DBService {
       override def retrieveRecord(id: Int): String = "FooBar"
     }
@@ -75,9 +76,9 @@ class DelegateSpec extends FlatSpec with Matchers {
   "Annottee" should "be able to provide its own implementations" in {
     class FooImpl extends Foo {
       override def bar(a1: Int, a2: String)(b1: String, b2: Int): String =
-        "FooImpl-bar"
+        "FooImpl.bar"
 
-      override def baz(a: Int, b: String): String = "FooImpl-baz"
+      override def baz(a: Int, b: String): String = "FooImpl.baz"
     }
 
     @Delegate
@@ -87,7 +88,7 @@ class DelegateSpec extends FlatSpec with Matchers {
 
     val testSubject = new TestSubject("Eureka", new FooImpl)
     testSubject.baz(0, "<not-relevant>") shouldBe "Eureka"
-    testSubject.bar(0, "<not-relevant>")("<not-relevant>", 0) shouldBe "FooImpl-bar"
+    testSubject.bar(0, "<not-relevant>")("<not-relevant>", 0) shouldBe "FooImpl.bar"
   }
 
   it should "be able to provide also an overloaded method" in {
@@ -101,9 +102,10 @@ class DelegateSpec extends FlatSpec with Matchers {
     }
 
     new TestSubject(new DBServiceImpl).retrieveRecord(2) shouldBe "FooBar"
+    new TestSubject(new DBServiceImpl).retrieveRecord("irrelevant") shouldBe "Overloaded-Method"
   }
 
-  "Delegation" should "be possible for abstract methods with multi parameter lists on the interface" in {
+  "Delegation" should "be possible for methods with multi parameter lists" in {
     class FooImpl extends Foo {
       override def bar(a1: Int, a2: String)(b1: String, b2: Int): String =
         s"FirstList(param1: $a1, param2: $a2); SecondList(param1: $b1, param2: $b2)"
@@ -118,7 +120,8 @@ class DelegateSpec extends FlatSpec with Matchers {
       "FirstList(param1: 1, param2: Carlos); SecondList(param1: Manuel, param2: 2)"
   }
 
-  "Annottee" should "use the interface's non-abstract declaration and not the delegatee" in {
+  "Annottee" should "use the interface's non-abstract declaration and not the delegatee" +
+    "'s" in {
     class FooImpl extends Foo {
       def bar(a1: Int, a2: String)(b1: String, b2: Int): String =
         s"FirstList(param1: $a1, param2: $a2); SecondList(param1: $b1, param2: $b2)"

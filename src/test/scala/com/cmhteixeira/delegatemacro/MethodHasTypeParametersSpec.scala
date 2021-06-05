@@ -1,22 +1,21 @@
-package com.cmhteixeira.delegatemacro.with_type_parameters
+package com.cmhteixeira.delegatemacro
 
 import org.scalatest.{FlatSpec, Matchers}
-import com.cmhteixeira.delegatemacro.Delegate
 
-trait Foo {
-  def bar[A](a1: A, a2: A): A
-}
+class MethodHasTypeParametersSpec extends FlatSpec with Matchers {
+  trait Foo {
+    def bar[A](a1: A, a2: A): A
+  }
 
-trait Foo2 {
-  def bar[A, B, C](a: A, b: B)(f: (A, B) => C): C
-}
+  trait Foo2 {
+    def bar[A, B, C](a: A, b: B)(f: (A, B) => C): C
+  }
 
-trait Foo3 {
-  def bar[A](a1: A, a2: A): A
-  def baz[A](a1: A, a2: A): A
-}
+  trait Foo3 {
+    def bar[A](a1: A, a2: A): A
+    def baz[A](a1: A, a2: A): A
+  }
 
-class DelegateWithTypeParamsSpec extends FlatSpec with Matchers {
   "The macro" should "delegate methods parameterized by one type" in {
     class FooImpl extends Foo {
       override def bar[A](a1: A, a2: A): A = a1

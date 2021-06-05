@@ -15,7 +15,7 @@ trait MonkeyBiz2[Req, Res] {
 }
 
 class InterfaceHasTypeParametersSpec extends FlatSpec with Matchers {
-  it should "work when the interface has type parameters" in {
+  "The macro" should "work when the interface has type parameters" in {
     class Delegatee extends MonkeyBiz[String, String] {
       override def get(url: String): String = "Delegatee.get"
       override def post(req: String): String = "Delegatee.post"
