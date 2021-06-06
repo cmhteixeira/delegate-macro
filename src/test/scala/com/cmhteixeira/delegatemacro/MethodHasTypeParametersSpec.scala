@@ -3,6 +3,7 @@ package com.cmhteixeira.delegatemacro
 import org.scalatest.{FlatSpec, Matchers}
 
 class MethodHasTypeParametersSpec extends FlatSpec with Matchers {
+
   trait Foo {
     def bar[A](a1: A, a2: A): A
   }

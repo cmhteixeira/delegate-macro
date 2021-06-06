@@ -77,7 +77,7 @@ object delegateMacro {
         case tree @ q"$mods val $tname1: $tpt = $expr" =>
           val theTypeOpt = scala.util.Try { c.typecheck(tpt, mode = c.TYPEmode).tpe }.toOption
           theTypeOpt.flatMap { theType =>
-            if (theType =:= superClassTypedTree.tpe)
+            if (theType <:< superClassTypedTree.tpe)
               Some((theType, tree.asInstanceOf[ValDef]))
             else None
           }
@@ -92,7 +92,7 @@ object delegateMacro {
       )
     }
 
-    val declarationsInterface = delegateeType.decls.toList.collect {
+    val declarationsInterface = superClassTypedTree.tpe.decls.toList.collect {
       case i if i.isMethod => i.asMethod
     }
 
@@ -130,9 +130,9 @@ object delegateMacro {
   }
 
   private def helper(c: whitebox.Context)(
-    annotateeMethod: c.universe.DefDef,
-    delegateeMethod: c.universe.MethodSymbol,
-    delegateeType: c.Type
+      annotateeMethod: c.universe.DefDef,
+      delegateeMethod: c.universe.MethodSymbol,
+      delegateeType: c.Type
   ): Boolean = {
     import c.universe._
     val sameName = annotateeMethod.name == delegateeMethod.name
