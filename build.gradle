@@ -10,7 +10,6 @@ plugins {
 ext {
     projectVersion = "1.0.0-SNAPSHOT"
     scalaMinorVersion = computeScalaMinorVersion(scalaVersion)
-    scalaMacroParadise = "2.1.1"
     pegdown = "1.4.2"
     scalaTest = "3.0.9"
     macroParadise = "2.1.1"

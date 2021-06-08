@@ -42,7 +42,7 @@ import scala.util.Success
   *
   */
 @compileTimeOnly("enable macro paradise to expand macro annotations")
-class Delegate extends StaticAnnotation {
+class Delegate(verbose: Boolean = false) extends StaticAnnotation {
   def macroTransform(annottees: Any*): Any = macro delegateMacro.impl
 }
 
@@ -50,6 +50,20 @@ object delegateMacro {
 
   def impl(c: whitebox.Context)(annottees: c.Expr[Any]*): c.Expr[Any] = {
     import c.universe._
+
+    val isVerbose = c.prefix.tree match {
+      case Apply(_, q"verbose = $foo" :: Nil) =>
+        foo match {
+          case Literal(Constant(verbose: Boolean)) => verbose
+          case _ =>
+            c.warning(
+              c.enclosingPosition,
+              "The value provided for 'verbose' must be a constant (true or false) and not an expression (e.g. 2 == 1 + 1). Verbose set to false."
+            )
+            false
+        }
+      case _ => false
+    }
 
     val annotateeClass: ClassDef = annottees.map(_.tree).toList match {
       case (claz: ClassDef) :: Nil => claz
@@ -125,6 +139,12 @@ object delegateMacro {
       case q"$mods class $tpname[..$tparams] $ctorMods(...$paramss) extends { ..$earlydefns } with ..$parents { $self => ..$stats }" =>
         q"$mods class $tpname[..$tparams] $ctorMods(...$paramss) extends { ..$earlydefns } with ..$parents { $self => ..${stats.toList ::: interfaceMethods} }"
     }
+
+    c.info(
+      c.enclosingPosition,
+      "\n###### Expanded macro ######\n" + resTree.toString() + "\n###### Expanded macro ######\n",
+      force = isVerbose
+    )
 
     c.Expr[Any](resTree)
   }
