@@ -67,10 +67,7 @@ object delegateMacro {
 
     val annotateeClass: ClassDef = annottees.map(_.tree).toList match {
       case (claz: ClassDef) :: Nil => claz
-      case _ =>
-        throw new Exception(
-          "Unexpected annottee. This annotation applies only to class definitions."
-        )
+      case _ => c.abort(c.enclosingPosition, "Unexpected annottee. Only applicable to class definitions.")
     }
 
     val (annotteeClassParents, annotteeClassParams, annotteeClassDefinitions) =
