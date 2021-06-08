@@ -30,7 +30,7 @@ class MyConnection(delegatee: Connection) extends Connection {
   def method2(a: String): String = delegatee.method2(a)
   def method10(a: String): String = "Only method I need to implement manually"
   // 96 other methods that are proxied to the dependency delegatee
-  def method100(a: String): String = = delegatee.method100(a)
+  def method100(a: String): String = delegatee.method100(a)
 }
 ```
 
@@ -100,3 +100,13 @@ Don't worry about that. It is aesthetically unpleaseant, but of no real conseque
 The solution would be to develop a public plugin for Intellij for this macro.
 
 ![](./documentation/ExampleRedLinesIntellijSupport.png)
+
+
+## Debug
+
+Knowing what the macro does, either to increase your confidence that it is doing what you meant, or for debugging, you can compile your code in debug mode.
+This will log what the macro expanded your class into.  
+Achieving this depends on which build system you are using. If using gradle, run `gradlew compileScala -i`. The `-i` is for info. Check more information at the logging section of the gradle documentation.  
+You can try and force debug mode with `@Delegate(verbose = true)`. However, this might not work if you build system is hiding the logs (as is the case for gradle without `-i`).  
+Alternatively, you can use flag `-Ymacro-debug-verbose`. This logs even more detailed information. I believe in this scenario everything is dumped to standard output, so it might overcome any logging limitations of your build system.
+
