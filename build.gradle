@@ -8,7 +8,7 @@ plugins {
 }
 
 ext {
-    projectVersion = "0.3.0"
+    projectVersion = "1.0.0-SNAPSHOT"
     scalaMinorVersion = computeScalaMinorVersion(scalaVersion)
     pegdown = "1.4.2"
     scalaTest = "3.0.9"
