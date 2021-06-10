@@ -103,7 +103,7 @@ object delegateMacro {
       )
     }
 
-    val declarationsInterface = superClassTypedTree.tpe.decls.toList.collect {
+    val declarationsInterface = superClassTypedTree.tpe.members.toList.collect {
       case i if i.isMethod => i.asMethod
     }
 

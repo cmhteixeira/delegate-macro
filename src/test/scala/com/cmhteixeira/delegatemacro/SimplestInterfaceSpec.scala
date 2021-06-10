@@ -156,4 +156,31 @@ class SimplestInterfaceSpec extends FlatSpec with Matchers {
     new TestSubject(new SpecificFooImpl)
       .barBaz("Hello") shouldBe "Default-Implementation-Hello"
   }
+
+  trait Foo2 extends Foo {
+    def doesNotExistOnFoo[A](i: String)(j: A): String
+  }
+
+  "Delegation" should "also occur for all abstract declarations along the class hierarchy of the interface" in {
+    class FooImpl extends Foo2 {
+      def bar(a1: Int, a2: String)(b1: String, b2: Int): String =
+        s"FirstList(param1: $a1, param2: $a2); SecondList(param1: $b1, param2: $b2)"
+
+      def baz(a: Int, b: String): String = "not-relevant"
+
+      override def barBaz(a: String): String = s"FooImpl=$a"
+
+      override def doesNotExistOnFoo[A](i: String)(j: A): String = s"FooImpl.doesNotExistOnFoo=${i + j.toString}"
+    }
+
+    @Delegate
+    class MyFoo2(delegatee: Foo2) extends Foo2
+
+    new MyFoo2(new FooImpl).doesNotExistOnFoo("Monkey")(true) shouldBe s"FooImpl.doesNotExistOnFoo=Monkeytrue"
+    new MyFoo2(new FooImpl).barBaz("Monkey") shouldBe s"Default-Implementation-Monkey"
+    new MyFoo2(new FooImpl).baz(30, "Baz") shouldBe "not-relevant"
+    new MyFoo2(new FooImpl).bar(30, "Bar")("Qux", 35) shouldBe
+      s"FirstList(param1: 30, param2: Bar); SecondList(param1: Qux, param2: 35)"
+  }
+
 }

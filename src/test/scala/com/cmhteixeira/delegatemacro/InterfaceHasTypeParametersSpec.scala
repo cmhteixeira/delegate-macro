@@ -72,4 +72,39 @@ class InterfaceHasTypeParametersSpec extends FlatSpec with Matchers {
       Some("""Person(Michael,35)""")
 
   }
+
+  trait MonkeyBiz3[Res] extends MonkeyBiz2[String, Res] {
+    def put[B](identifier: String)(newBody: B): Res
+    def patch[C](identifier: Int)(patch: C): String = s"MonkeyBiz3.patch($identifier)($patch)"
+  }
+
+  class MonkeyBiz3Impl[Res](init: Res) extends MonkeyBiz3[Res] {
+    override def put[B](identifier: String)(newBody: B): Res = init
+
+    override def delete[A](a: A): Option[Res] = None
+
+    override def delete2[A](a: A): Option[Res] = None
+
+    override def get(url: String): Res = init
+
+    override def post(req: String): Res = init
+  }
+
+  "Delegation" should "also occur for all abstract declarations along the class hierarchy of the interface" in {
+
+    @Delegate
+    class Annotatee(delegatee: MonkeyBiz3Impl[Long]) extends MonkeyBiz3[Long] {
+      override def delete2[A](a: A): Option[Long] = Some(111111111)
+    }
+
+    val annotatee = new Annotatee(new MonkeyBiz3Impl[Long](123123))
+
+    annotatee.put("Foo")(987) shouldBe 123123
+    annotatee.patch(0)(987) shouldBe "MonkeyBiz3.patch(0)(987)"
+    annotatee.delete("0") shouldBe None
+    annotatee.delete2("0") shouldBe Some(111111111)
+    annotatee.get("nothing") shouldBe 123123
+    annotatee.post("nothing") shouldBe 123123
+
+  }
 }
