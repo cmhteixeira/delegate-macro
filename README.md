@@ -1,5 +1,8 @@
 # Delegate Macro &emsp; [![Build Status](https://www.travis-ci.com/cmhteixeira/delegate-macro.svg?branch=master)](https://www.travis-ci.com/cmhteixeira/delegate-macro) [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.cmhteixeira/delegate-macro_2.13/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.cmhteixeira/delegate-macro_2.13)
 
+#### Found a problem?
+Open an issue, and I will look into it ASAP.
+
 ## Motivation
 
 This macro enables you to delegate/proxy the implementation of an interface to a dependency in a very straightforward
