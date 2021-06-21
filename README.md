@@ -1,7 +1,8 @@
 # Delegate Macro &emsp; [![Build Status](https://www.travis-ci.com/cmhteixeira/delegate-macro.svg?branch=master)](https://www.travis-ci.com/cmhteixeira/delegate-macro) [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.cmhteixeira/delegate-macro_2.13/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.cmhteixeira/delegate-macro_2.13)
 
-#### Found a problem?
-Open an issue, and I will look into it ASAP.
+**Found the project interesting?** &rightarrow;  Then drop a :star:. I am needing the encouragement. ;)  
+**Found a problem?** &rightarrow; Open an issue, and I will look into it ASAP.  
+**Want to contribute?** &rightarrow; If you found a bug and want to fix it yourself open an MR.  I welcome contributions.  
 
 ## Motivation
 
